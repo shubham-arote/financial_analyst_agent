@@ -1,0 +1,25 @@
+.venv/
+.env
+logs/
+__pycache__/
+**/__pycache__/
+*.pyc
+.git/
+.claude/
+files/
+samples/report_page.png
+samples/report_page.regions.json
+samples/sample_report.pdf
+evals/report.md
+# local state + dev artifacts — never ship these in the image
+data/
+*.db
+*.db-wal
+*.db-shm
+ai_index_report_2026.pdf
+smoke_test.py
+compare_extraction.py
+phase1_check.py
+phase1b_check.py
+memory_check.py
+ws_memory_check.py

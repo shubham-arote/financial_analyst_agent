@@ -1,0 +1,13 @@
+.venv/
+.env
+__pycache__/
+*.pyc
+samples/report_page.png
+samples/report_page.regions.json
+data/
+*.db
+*.db-wal
+*.db-shm
+logs/
+.claude/
+ai_index_report_2026.pdf

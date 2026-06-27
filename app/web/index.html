@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Document Q&A — ask your PDFs</title>
+  <link rel="stylesheet" href="/static/styles.css?v=4" />
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <h1>Document&nbsp;Q&amp;A</h1>
+      <p class="sub">Ask questions about any PDF — every answer links back to the exact page &amp; spot</p>
+    </div>
+    <div class="controls">
+      <span id="badge" class="badge" title="how text is being read"></span>
+      <button id="sampleBtn" class="btn ghost">Try sample report</button>
+      <label class="btn primary upload">Upload PDF
+        <input id="fileInput" type="file" accept="image/*,application/pdf" hidden />
+      </label>
+    </div>
+  </header>
+
+  <main>
+    <!-- LEFT: the document -->
+    <section class="panel left">
+      <div class="toolbar">
+        <div id="nav" class="nav" hidden>
+          <button id="prevPage" title="previous page (←)">◀</button>
+          <span id="pageLabel">1 / 1</span>
+          <button id="nextPage" title="next page (→)">▶</button>
+          <input id="jumpPage" type="number" min="1" value="1" title="jump to page" />
+          <button id="jumpBtn">Go</button>
+        </div>
+        <div id="zoombar" class="zoombar" hidden>
+          <button id="fitBtn" title="fit whole page">Fit</button>
+          <button id="zoomOut" title="zoom out">−</button>
+          <button id="zoomIn" title="zoom in">＋</button>
+          <span id="zoomLabel">100%</span>
+        </div>
+        <div class="spacer"></div>
+        <button id="detailsToggle" class="btn ghost small" hidden>Detection details ▾</button>
+      </div>
+
+      <div id="stageWrap" class="stage-wrap">
+        <img id="pageImg" alt="document page" />
+        <canvas id="overlay"></canvas>
+        <div id="placeholder" class="placeholder">
+          <div class="hero">
+            <div class="hero-badge">PDF → answers</div>
+            <h2>Turn a report into answers</h2>
+            <p>Upload a PDF or try the sample. We read every page, then you can ask questions —
+               each answer cites the exact page and highlights where it came from.</p>
+            <div class="hero-cta">
+              <button id="heroSample" class="btn primary">Try the sample report</button>
+              <button id="heroUpload" class="btn ghost">Upload your own PDF</button>
+            </div>
+          </div>
+        </div>
+        <div id="spinner" class="spinner" hidden><span class="ring"></span><span id="spinnerText">Reading the document…</span></div>
+      </div>
+
+      <div id="details" class="details" hidden>
+        <div class="stages">
+          <span class="light" id="st-structure">① Structure</span>
+          <span class="light" id="st-recognition">② Recognition</span>
+          <span class="light" id="st-relation">③ Relation</span>
+        </div>
+        <div class="legend" id="legend"></div>
+        <div class="stats" id="stats">idle</div>
+      </div>
+    </section>
+
+    <!-- RIGHT: text + chat -->
+    <section class="panel right">
+      <div class="card doc-card">
+        <div class="card-head"><h2>Page text <span class="muted" id="mdMeta"></span></h2></div>
+        <div id="markdown" class="markdown"><span class="muted">— upload a document to begin —</span></div>
+      </div>
+
+      <div class="card chat">
+        <div class="card-head"><h2>Ask the document <span class="muted" id="askMode"></span></h2></div>
+        <div id="messages" class="messages">
+          <div id="suggestions" class="suggestions"></div>
+        </div>
+        <form id="askForm" class="ask-form">
+          <input id="askInput" type="text" placeholder="Ask about the document…" disabled />
+          <button id="askBtn" type="submit" disabled>Ask</button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <script src="/static/app.js?v=4"></script>
+</body>
+</html>

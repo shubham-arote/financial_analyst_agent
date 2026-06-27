@@ -1,0 +1,28 @@
+# Live SRR Document Engine — core MVP (cloud-first, CPU-only, no torch required)
+fastapi
+uvicorn[standard]
+python-multipart
+pillow
+numpy
+pymupdf
+rank-bm25
+openai
+python-dotenv
+langgraph
+langgraph-checkpoint-sqlite      # durable conversation memory (SqliteSaver checkpointer)
+langchain-core
+httpx                            # Cohere REST (hybrid dense embeddings + rerank)
+
+# --- Gold deploy: external Qdrant hybrid store (set SRR_VECTOR_STORE=qdrant) ---
+# qdrant-client                   # named dense+sparse vectors, in-DB RRF + payload-filter lookup
+# fastembed                       # BM25 sparse vectors (Qdrant/bm25); CPU, ~50 MB onnxruntime
+# langgraph-checkpoint-postgres   # conversation memory in Cloud SQL Postgres (SRR_CHECKPOINT=postgres)
+# psycopg[binary]                 #   Postgres driver
+# psycopg-pool                    #   connection pool (concurrent requests)
+# google-cloud-storage            # stateless DocStore: doc blobs + page JSON in GCS (SRR_DOCSTORE=gcs)
+
+# --- optional upgrades (install only what you want) ---
+# docling                         # layout-model PDF parser + OCR (SRR_PDF_PARSER=docling); pulls torch + ~1 GB models
+# easyocr                         # fully-offline local OCR recognizer (pulls torch CPU, ~200 MB)
+# doclayout-yolo                  # real tiny layout detector (MonkeyOCR's); then SRR_DETECTOR=doclayout
+# sentence-transformers faiss-cpu # semantic retrieval upgrade (vs default BM25)
