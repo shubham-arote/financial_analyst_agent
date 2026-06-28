@@ -21,6 +21,9 @@ httpx                            # Cohere REST (hybrid dense embeddings + rerank
 # psycopg-pool                    #   connection pool (concurrent requests)
 # google-cloud-storage            # stateless DocStore: doc blobs + page JSON in GCS (SRR_DOCSTORE=gcs)
 
+# --- dev only (NOT installed in the lean Docker image) ---
+# pytest                          # run the offline gate: python -m pytest tests/
+
 # --- optional upgrades (install only what you want) ---
 # docling                         # layout-model PDF parser + OCR (SRR_PDF_PARSER=docling); pulls torch + ~1 GB models
 # easyocr                         # fully-offline local OCR recognizer (pulls torch CPU, ~200 MB)
