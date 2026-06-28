@@ -22,12 +22,12 @@ Store selection mirrors week2: `QDRANT_MODE=cloud` (uses `QDRANT_URL`+`QDRANT_AP
 
 from __future__ import annotations
 
-import os
 import uuid
 
 from qdrant_client import QdrantClient, models
 
 from . import cohere_client
+from ..config import settings
 from .graph import DocIndex
 from .hybrid import lookup_terms
 from .retriever import Evidence
@@ -54,10 +54,9 @@ def _sparse(text: str, query: bool = False) -> models.SparseVector:
 
 def get_client() -> QdrantClient:
     """Cloud (`QDRANT_MODE=cloud`) or local/in-memory — same selection as week2."""
-    if os.getenv("QDRANT_MODE", "").lower() == "cloud":
-        return QdrantClient(url=os.environ["QDRANT_URL"].strip(),
-                            api_key=os.environ["QDRANT_API_KEY"].strip())
-    loc = os.getenv("QDRANT_LOCATION", ":memory:")
+    if settings.qdrant_mode == "cloud":
+        return QdrantClient(url=settings.qdrant_url, api_key=settings.qdrant_api_key)
+    loc = settings.qdrant_location
     return QdrantClient(loc) if loc == ":memory:" else QdrantClient(url=loc)
 
 
@@ -162,6 +161,6 @@ def build_qdrant_retriever(doc_id: str, index: DocIndex,
     """Index a doc into Qdrant and return a retriever bound to it. (Deploy: pass a shared
     cloud client; the server would index once at parse time and reuse the retriever.)"""
     client = client or get_client()
-    collection = collection or os.getenv("QDRANT_COLLECTION", "srr_docs")
+    collection = collection or settings.qdrant_collection
     index_doc(client, collection, doc_id, index)
     return QdrantRetriever(client, collection, doc_id)

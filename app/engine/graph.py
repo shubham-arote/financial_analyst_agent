@@ -19,7 +19,6 @@ it grades by keyword overlap and answers extractively.
 from __future__ import annotations
 
 import operator
-import os
 import re
 import time
 import uuid
@@ -29,6 +28,7 @@ from typing import Annotated, Iterator, TypedDict
 from langgraph.graph import END, START, StateGraph
 
 from .. import guards, obs
+from ..config import settings
 from ..srr import cloud
 from ..srr.core import FURNITURE, BlockType
 from .retriever import Evidence, Retriever
@@ -38,10 +38,10 @@ def _get_checkpointer():
     """Conversation-memory store for the agent graph. Persists per-`thread_id` state across turns
     so follow-ups work. `SRR_CHECKPOINT=sqlite|postgres|memory|off`. Postgres (set CHECKPOINT_DB_URL)
     is the deploy/Cloud-SQL backend; SQLite (default) is the durable local stand-in."""
-    mode = os.getenv("SRR_CHECKPOINT", "sqlite").lower()
+    mode = settings.checkpoint
     if mode == "off":
         return None
-    url = os.getenv("CHECKPOINT_DB_URL", "")
+    url = settings.checkpoint_db_url
     if mode == "postgres" or url.startswith("postgres"):
         try:                                          # Cloud SQL / Postgres — the deploy backend
             from psycopg.rows import dict_row
@@ -59,8 +59,7 @@ def _get_checkpointer():
         try:
             import sqlite3
             from langgraph.checkpoint.sqlite import SqliteSaver
-            path = os.getenv("SRR_CHECKPOINT_DB",
-                             str(Path(__file__).resolve().parents[2] / "data" / "checkpoints.db"))
+            path = settings.checkpoint_db
             Path(path).parent.mkdir(parents=True, exist_ok=True)
             cp = SqliteSaver(sqlite3.connect(path, check_same_thread=False))
             try:
@@ -127,7 +126,7 @@ def _child(text, content, page, heading, b, sec_id) -> dict:
 #   SRR_RERANK = heuristic (default) | llm | off
 # --------------------------------------------------------------------------- #
 def _rerank(query: str, cands: list[dict]) -> list[dict]:
-    mode = os.getenv("SRR_RERANK", "heuristic").lower()
+    mode = settings.rerank
     if mode == "off" or not cands:
         return cands
     if mode == "llm" and cloud.has_cloud():

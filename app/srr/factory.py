@@ -14,9 +14,9 @@ never hard-fails.
 from __future__ import annotations
 
 import logging
-import os
 
 from . import cloud
+from ..config import settings
 from .core import ColumnAwareReadingOrder
 from .detector import DocLayoutYOLODetector, HeuristicDetector
 from .recognizer import (CloudVLM, EasyOCRVLM, GroundTruthRecognizer, StubVLM,
@@ -27,9 +27,9 @@ logger = logging.getLogger("srr.factory")
 
 
 def _build_detector():
-    choice = os.getenv("SRR_DETECTOR", "heuristic").lower()
+    choice = settings.detector
     if choice == "doclayout":
-        weights = os.getenv("SRR_DETECTOR_WEIGHTS", "doclayout_yolo_docstructbench.pt")
+        weights = settings.detector_weights
         try:
             return DocLayoutYOLODetector(weights)
         except Exception as e:
@@ -38,7 +38,7 @@ def _build_detector():
 
 
 def _build_recognizer(ground_truth):
-    choice = os.getenv("SRR_RECOGNIZER", "auto").lower()
+    choice = settings.recognizer
 
     if choice == "stub":
         return VLMRecognizer(StubVLM())
@@ -64,8 +64,7 @@ def build_pipeline(ground_truth=None, stream_delay: float | None = None) -> Stre
     recognizer = _build_recognizer(ground_truth)
     relation = ColumnAwareReadingOrder()
 
-    delay = (float(os.getenv("SRR_STREAM_DELAY", "0.12"))
-             if stream_delay is None else stream_delay)
-    workers = int(os.getenv("SRR_MAX_WORKERS", "6"))
+    delay = settings.stream_delay if stream_delay is None else stream_delay
+    workers = settings.max_workers
     return StreamingSRRPipeline(detector, recognizer, relation,
                                 stream_delay=delay, max_workers=workers)

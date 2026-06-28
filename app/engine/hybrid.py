@@ -17,12 +17,12 @@ delegates to the DocIndex BM25 path — byte-for-byte today's behaviour.
 
 from __future__ import annotations
 
-import os
 import re
 
 import numpy as np
 
 from . import cohere_client
+from ..config import settings
 from .graph import DocIndex, _tok
 from .retriever import Evidence, Retriever
 
@@ -183,7 +183,7 @@ def make_retriever(doc_id: str, index: DocIndex) -> Retriever:
     """Pick the retrieval backend by `SRR_VECTOR_STORE`: `qdrant` -> external Qdrant hybrid store
     (week2 pattern, stateless/deploy); otherwise the in-memory hybrid/BM25. `qdrant_store` is
     imported lazily so qdrant-client/fastembed stay optional for the lean image."""
-    if os.getenv("SRR_VECTOR_STORE", "memory").lower() == "qdrant" and cohere_client.available():
+    if settings.vector_store == "qdrant" and cohere_client.available():
         from .qdrant_store import build_qdrant_retriever
         return build_qdrant_retriever(doc_id, index, client=_qdrant_client())
     return build_retriever(index)

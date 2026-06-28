@@ -11,12 +11,13 @@ be swapped for GCS (blobs) + Firestore (metadata/pages) on Cloud Run without tou
 from __future__ import annotations
 
 import json
-import os
 import sqlite3
 import threading
 import time
 from abc import ABC, abstractmethod
 from pathlib import Path
+
+from .config import settings
 
 
 class DocStore(ABC):
@@ -179,8 +180,6 @@ class GcsDocStore(DocStore):
 def get_store() -> DocStore:
     """Pick the durable store. `SRR_DOCSTORE=gcs` (or `GCS_BUCKET` set) -> GcsDocStore (the
     stateless Cloud-Run backend); else SQLite (default, local). `SRR_DB` overrides the sqlite path."""
-    if os.getenv("SRR_DOCSTORE", "").lower() == "gcs" or os.getenv("GCS_BUCKET"):
-        return GcsDocStore(os.getenv("GCS_BUCKET", "srr-docs"),
-                           endpoint=os.getenv("STORAGE_EMULATOR_HOST") or os.getenv("GCS_ENDPOINT"))
-    default = str(Path(__file__).resolve().parents[1] / "data" / "docs.db")
-    return SqliteDocStore(os.getenv("SRR_DB", default))
+    if settings.docstore == "gcs" or settings.gcs_bucket:
+        return GcsDocStore(settings.gcs_bucket or "srr-docs", endpoint=settings.gcs_endpoint)
+    return SqliteDocStore(settings.db_path)

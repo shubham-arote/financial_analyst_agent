@@ -17,10 +17,10 @@ Fidelity work (v2):
 
 from __future__ import annotations
 
-import os
 import re
 from collections import Counter
 
+from ..config import settings
 from .core import BBox, Block, BlockType, ColumnAwareReadingOrder, assemble_markdown
 
 _NUM = re.compile(r"^[-(]?\d[\d,.\s]*\)?%?$")
@@ -76,7 +76,7 @@ def _detect_tables(page, page_no: int) -> list[Block]:
     (speed) and the SRR_TABLES env (set to 0 to disable table detection entirely).
     """
     out: list[Block] = []
-    if os.getenv("SRR_TABLES", "1") == "0" or not _has_table_rules(page):
+    if not settings.tables or not _has_table_rules(page):
         return out
     page_area = page.rect.width * page.rect.height
     try:

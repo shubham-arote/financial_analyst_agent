@@ -25,7 +25,6 @@ from __future__ import annotations
 
 import asyncio
 import io
-import os
 import threading
 import uuid
 from pathlib import Path
@@ -37,6 +36,7 @@ from fastapi.staticfiles import StaticFiles
 from PIL import Image
 
 from . import guards, obs, store
+from .config import settings
 from .engine.graph import AgentEngine, DocIndex
 from .engine.hybrid import make_retriever
 from .srr import cloud, pdf_textlayer
@@ -128,7 +128,7 @@ def _parse_pdf_bg(doc_id: str, data: bytes) -> None:
     doc = DOCS.get(doc_id)
     if not doc:
         return
-    parser = os.getenv("SRR_PDF_PARSER", "auto").lower()
+    parser = settings.pdf_parser
     relation = ColumnAwareReadingOrder()
     n = doc["page_count"]
     try:
@@ -153,7 +153,7 @@ def _parse_pdf_bg(doc_id: str, data: bytes) -> None:
             from .srr import pdf_cloudvlm
             if not pdf_cloudvlm.available():
                 return _fail(doc_id, doc, "Cloud VLM OCR needs GROQ_API_KEY or OPENROUTER_API_KEY in .env.")
-            chunk = max(1, int(os.getenv("SRR_VLM_CHUNK", "4")))
+            chunk = settings.vlm_chunk
             for a in range(0, n, chunk):
                 b = min(a + chunk, n)
                 for gp0, blocks in pdf_cloudvlm.parse_pages(data, a, b).items():
@@ -164,9 +164,9 @@ def _parse_pdf_bg(doc_id: str, data: bytes) -> None:
                 _save_pages(doc_id, doc, a, b)
         else:
             from .srr import pdf_docling
-            env_ocr = os.getenv("SRR_DOCLING_OCR")
+            env_ocr = settings.docling_ocr
             do_ocr = (not pdf_textlayer.has_text_layer(doc["fitz"])) if env_ocr is None else (env_ocr != "0")
-            chunk = max(1, int(os.getenv("SRR_DOCLING_CHUNK", "6")))
+            chunk = settings.docling_chunk
             for a in range(0, n, chunk):
                 b = min(a + chunk, n)
                 for gp0, blocks in pdf_docling.parse_pages(data, a, b, do_ocr=do_ocr).items():

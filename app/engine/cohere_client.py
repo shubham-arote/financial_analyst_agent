@@ -12,25 +12,18 @@ the ``cohere`` SDK — same reasoning as cloud.py keeping the footprint light.
 
 from __future__ import annotations
 
-import os
-
 import httpx
 
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except Exception:  # python-dotenv optional
-    pass
+from ..config import settings
 
 _BASE = "https://api.cohere.com/v2"
-EMBED_MODEL = os.getenv("COHERE_EMBED_MODEL", "embed-v4.0")
-RERANK_MODEL = os.getenv("COHERE_RERANK_MODEL", "rerank-v3.5")
+EMBED_MODEL = settings.cohere_embed_model
+RERANK_MODEL = settings.cohere_rerank_model
 _EMBED_BATCH = 96
 
 
 def _key() -> str | None:
-    k = os.getenv("COHERE_API_KEY")
-    return k.strip() if k else None
+    return settings.cohere_api_key
 
 
 def available() -> bool:

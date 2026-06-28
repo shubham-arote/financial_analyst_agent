@@ -20,37 +20,31 @@ from __future__ import annotations
 import base64
 import functools
 import io
-import os
 
 from PIL import Image
 
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except Exception:  # python-dotenv optional
-    pass
+from ..config import settings
 
 
 def resolve_provider() -> dict | None:
     """Return {name, base_url, api_key, vision_model, text_model} or None."""
-    vision = os.getenv("VISION_MODEL")
-    text = os.getenv("TEXT_MODEL")
+    vision = settings.vision_model
+    text = settings.text_model
 
-    base, key = os.getenv("VLM_BASE_URL"), os.getenv("VLM_API_KEY")
-    if base and key:
-        generic = os.getenv("VLM_MODEL", "gpt-4o-mini")
-        return {"name": "custom", "base_url": base, "api_key": key,
+    if settings.vlm_base_url and settings.vlm_api_key:
+        generic = settings.vlm_model
+        return {"name": "custom", "base_url": settings.vlm_base_url, "api_key": settings.vlm_api_key,
                 "vision_model": vision or generic, "text_model": text or generic}
 
-    if os.getenv("GROQ_API_KEY"):
+    if settings.groq_api_key:
         return {"name": "Groq", "base_url": "https://api.groq.com/openai/v1",
-                "api_key": os.getenv("GROQ_API_KEY"),
+                "api_key": settings.groq_api_key,
                 "vision_model": vision or "meta-llama/llama-4-scout-17b-16e-instruct",
                 "text_model": text or "llama-3.3-70b-versatile"}
 
-    if os.getenv("OPENROUTER_API_KEY"):
+    if settings.openrouter_api_key:
         return {"name": "OpenRouter", "base_url": "https://openrouter.ai/api/v1",
-                "api_key": os.getenv("OPENROUTER_API_KEY"),
+                "api_key": settings.openrouter_api_key,
                 "vision_model": vision or "meta-llama/llama-3.2-11b-vision-instruct:free",
                 "text_model": text or "meta-llama/llama-3.3-70b-instruct:free"}
 
