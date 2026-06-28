@@ -9,6 +9,7 @@ import math
 from app.srr.core import Block, BBox, BlockType
 from app.retrieval import DocIndex
 from app.agent.graph import AgentEngine
+from app.agent.verify import verify_numbers
 from app.srr import cloud
 
 
@@ -64,3 +65,22 @@ def test_calculate_offline_skips():
     out = eng._calculate({"original_question": "growth?", "question": "growth",
                           "retrieved": eng.index.retrieve("operating profit", 6)})
     assert out == {}
+
+
+# ── verifier ──────────────────────────────────────────────────────────────────
+def test_verifier_flags_fabricated_number():
+    retrieved = [{"content": "Operating profit was 1,052 in FY26.", "page": 1}]
+    bad = verify_numbers("Profit was 1052, and revenue was 999.", retrieved, None)
+    assert "999" in bad and "1052" not in bad
+
+
+def test_verifier_accepts_computed_value():
+    retrieved = [{"content": "Operating profit 1052 and 985.", "page": 1}]
+    comp = {"expr": "(1052-985)/985*100", "result": 6.802030456852792}
+    # 6.80 ~ the verified computation; 1052/985 aren't restated in the answer
+    assert verify_numbers("The growth was 6.80%.", retrieved, comp) == []
+
+
+def test_verifier_ignores_page_citations():
+    retrieved = [{"content": "Revenue 500.", "page": 7}]
+    assert verify_numbers("Revenue was 500 [page 7].", retrieved, None) == []

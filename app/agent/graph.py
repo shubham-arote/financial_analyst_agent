@@ -33,6 +33,7 @@ from ..retrieval.base import Retriever
 from ..retrieval.hybrid import classify
 from ..retrieval.index import _STOP, _tok   # shared text helpers for the offline fallbacks
 from .calculator import CalcError, extract_expression, is_math_query, safe_eval
+from .verify import verify_numbers
 
 
 def _get_checkpointer():
@@ -239,6 +240,19 @@ class AgentEngine:
         return {"answer": ans, "sources": sources, "injection_flags": flags,
                 "history": [{"q": uq, "a": ans}]}
 
+    def _verify(self, state: RAGState) -> RAGState:
+        """Numeric faithfulness: flag any figure in the answer not traceable to a cited chunk
+        or the verified computation, and append a transparent caveat (no silent trust)."""
+        ans = state.get("answer", "")
+        if not ans or not state.get("sources"):          # abstained / nothing to check
+            return {"unverified": []}
+        bad = verify_numbers(ans, state.get("retrieved", []), state.get("computation"))
+        if not bad:
+            return {"unverified": []}
+        caveat = ("\n\nNote — unverified figure(s) not found in the cited context: "
+                  + ", ".join(bad) + " — treat with caution.")
+        return {"answer": ans + caveat, "unverified": bad}
+
     @staticmethod
     def _grade_heuristic(question: str, ctx: str) -> str:
         if not ctx:
@@ -267,6 +281,7 @@ class AgentEngine:
         g.add_node("rewrite", self._rewrite)
         g.add_node("calculate", self._calculate)
         g.add_node("generate", self._generate)
+        g.add_node("verify", self._verify)
         g.add_edge(START, "contextualize")
         g.add_edge("contextualize", "supervise")
         g.add_edge("supervise", "retrieve")
@@ -275,7 +290,8 @@ class AgentEngine:
                                 {"rewrite": "rewrite", "calculate": "calculate", "generate": "generate"})
         g.add_edge("rewrite", "retrieve")
         g.add_edge("calculate", "generate")
-        g.add_edge("generate", END)
+        g.add_edge("generate", "verify")
+        g.add_edge("verify", END)
         return g.compile(checkpointer=self.checkpointer)
 
     # ---- run (streamed) ---- #
