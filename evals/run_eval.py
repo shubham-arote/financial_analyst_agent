@@ -18,8 +18,8 @@ from pathlib import Path
 
 import fitz
 
-from app.engine.graph import AgentEngine, DocIndex
-from app.engine.hybrid import build_retriever
+from app.agent.graph import AgentEngine
+from app.retrieval import DocIndex, build_retriever
 from app.srr import cloud, pdf_textlayer
 from app.srr.core import ColumnAwareReadingOrder
 

@@ -28,9 +28,9 @@ from qdrant_client import QdrantClient, models
 
 from . import cohere_client
 from ..config import settings
-from .graph import DocIndex
+from .index import DocIndex
 from .hybrid import lookup_terms
-from .retriever import Evidence
+from .base import Evidence
 
 _DENSE_DIM = 1536                       # Cohere embed-v4.0
 _PAYLOAD_KEYS = ("text", "content", "page", "bbox", "block_id", "section_id",

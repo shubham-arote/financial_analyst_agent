@@ -37,8 +37,8 @@ from PIL import Image
 
 from . import guards, obs, store
 from .config import settings
-from .engine.graph import AgentEngine, DocIndex
-from .engine.hybrid import make_retriever
+from .agent.graph import AgentEngine
+from .retrieval import DocIndex, make_retriever
 from .srr import cloud, pdf_textlayer
 from .srr.core import ColumnAwareReadingOrder, block_from_dict, block_to_dict
 from .srr.factory import build_pipeline

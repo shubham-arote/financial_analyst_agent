@@ -8,7 +8,7 @@ from __future__ import annotations
 import time
 
 from evals.run_eval import build_index, GOLDEN
-from app.engine.hybrid import HybridRetriever
+from app.retrieval import HybridRetriever
 
 K = 5
 

@@ -23,8 +23,8 @@ import numpy as np
 
 from . import cohere_client
 from ..config import settings
-from .graph import DocIndex, _tok
-from .retriever import Evidence, Retriever
+from .index import DocIndex, _tok
+from .base import Evidence, Retriever
 
 # query-type -> (dense_weight, bm25_weight)   [ported from manual-rag-api]
 _TYPE_WEIGHTS = {
@@ -174,7 +174,7 @@ _QDRANT = None
 def _qdrant_client():
     global _QDRANT
     if _QDRANT is None:
-        from .qdrant_store import get_client
+        from .qdrant import get_client
         _QDRANT = get_client()                 # shared across docs (in-memory locally / Qdrant Cloud)
     return _QDRANT
 
@@ -184,6 +184,6 @@ def make_retriever(doc_id: str, index: DocIndex) -> Retriever:
     (week2 pattern, stateless/deploy); otherwise the in-memory hybrid/BM25. `qdrant_store` is
     imported lazily so qdrant-client/fastembed stay optional for the lean image."""
     if settings.vector_store == "qdrant" and cohere_client.available():
-        from .qdrant_store import build_qdrant_retriever
+        from .qdrant import build_qdrant_retriever
         return build_qdrant_retriever(doc_id, index, client=_qdrant_client())
     return build_retriever(index)

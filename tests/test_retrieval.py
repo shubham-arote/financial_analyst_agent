@@ -9,9 +9,8 @@ Covers the two guarantees the hybrid layer must keep:
 """
 
 from app.srr.core import Block, BBox, BlockType
-from app.engine.graph import DocIndex
-from app.engine.retriever import Retriever
-from app.engine import cohere_client, hybrid
+from app.retrieval import DocIndex, Retriever
+from app.retrieval import cohere_client, hybrid
 
 CONTRACT_KEYS = {"page", "bbox", "block_id", "type", "text", "content",
                  "score", "parent_text", "section_heading"}

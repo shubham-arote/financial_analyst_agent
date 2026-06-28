@@ -13,8 +13,8 @@ from fastapi.testclient import TestClient
 
 from app.server import app
 from app.srr.core import Block, BBox, BlockType
-from app.engine.graph import AgentEngine, DocIndex
-from app.engine.hybrid import build_retriever
+from app.agent.graph import AgentEngine
+from app.retrieval import DocIndex, build_retriever
 
 # Evidence fields the agent + UI depend on (the retrieval contract).
 EVIDENCE_KEYS = {"page", "bbox", "block_id", "type", "text", "content", "score"}
