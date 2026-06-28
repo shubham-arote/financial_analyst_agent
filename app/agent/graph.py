@@ -302,11 +302,14 @@ class AgentEngine:
         mode = "cloud LLM" if self.use_cloud else "offline (BM25 + extractive)"
         yield {"type": "agent_start", "question": question, "mode": mode}
         t0 = time.time()
-        trace = {"question": question, "mode": mode, "attempts": 0, "grades": [],
-                 "rewrites": [], "retrieved": [], "answer": "", "sources": 0, "injection_flags": []}
+        trace = {"question": question, "mode": mode, "task": "qa", "attempts": 0, "grades": [],
+                 "rewrites": [], "retrieved": [], "computation": None, "unverified": [],
+                 "answer": "", "sources": 0, "injection_flags": []}
         for update in self.graph.stream(init, config=config, stream_mode="updates"):
             for node, delta in update.items():
-                if node == "retrieve":
+                if node == "supervise":
+                    trace["task"] = delta.get("task", trace["task"])
+                elif node == "retrieve":
                     trace["attempts"] = delta.get("attempts", trace["attempts"])
                     trace["retrieved"] = [{"page": c.get("page"), "score": round(c.get("score", 0), 2)}
                                           for c in delta.get("retrieved", [])[:6]]
@@ -314,10 +317,14 @@ class AgentEngine:
                     trace["grades"].append(delta.get("grade"))
                 elif node == "rewrite":
                     trace["rewrites"].append(delta.get("question"))
+                elif node == "calculate":
+                    trace["computation"] = delta.get("computation")
                 elif node == "generate":
                     trace["answer"] = (delta.get("answer") or "")[:300]
                     trace["sources"] = len(delta.get("sources", []))
                     trace["injection_flags"] = delta.get("injection_flags", [])
+                elif node == "verify":
+                    trace["unverified"] = delta.get("unverified", [])
                 ev = self._node_event(node, delta)
                 if ev:
                     yield ev
@@ -327,6 +334,8 @@ class AgentEngine:
 
     @staticmethod
     def _node_event(node: str, delta: dict) -> dict | None:
+        if node == "supervise":
+            return {"type": "agent_node", "node": "supervise", "task": delta.get("task")}
         if node == "retrieve":
             return {"type": "agent_node", "node": "retrieve", "status": "done",
                     "attempt": delta.get("attempts"), "k": len(delta.get("retrieved", []))}
@@ -334,9 +343,16 @@ class AgentEngine:
             return {"type": "agent_node", "node": "grade", "verdict": delta.get("grade")}
         if node == "rewrite":
             return {"type": "agent_node", "node": "rewrite", "query": delta.get("question")}
+        if node == "calculate":
+            comp = delta.get("computation")
+            return ({"type": "agent_node", "node": "calculate",
+                     "expr": comp["expr"], "result": comp["result"]} if comp else None)
         if node == "generate":
             return {"type": "agent_answer", "answer": delta.get("answer", ""),
                     "sources": delta.get("sources", [])}
+        if node == "verify":
+            return {"type": "agent_node", "node": "verify",
+                    "unverified": delta.get("unverified", [])}
         return None
 
     def run(self, question: str, thread_id: str | None = None) -> dict:

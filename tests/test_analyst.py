@@ -84,3 +84,20 @@ def test_verifier_accepts_computed_value():
 def test_verifier_ignores_page_citations():
     retrieved = [{"content": "Revenue 500.", "page": 7}]
     assert verify_numbers("Revenue was 500 [page 7].", retrieved, None) == []
+
+
+# ── observability (increment C) ───────────────────────────────────────────────
+def test_node_events_for_analyst_nodes():
+    ne = AgentEngine._node_event
+    assert ne("supervise", {"task": "calc"})["task"] == "calc"
+    assert ne("calculate", {"computation": {"expr": "1+1", "result": 2}})["result"] == 2
+    assert ne("calculate", {}) is None                       # skipped calc -> no event
+    assert ne("verify", {"unverified": ["999"]})["unverified"] == ["999"]
+
+
+def test_streaming_emits_supervise_event():
+    eng = _engine()
+    eng.use_cloud = False    # full offline run through the new nodes
+    events = list(eng.run_streaming("where is the registered office?", thread_id="s1"))
+    supervise = [e for e in events if e.get("node") == "supervise"]
+    assert supervise and supervise[0]["task"] in ("qa", "calc", "compare")
