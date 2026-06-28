@@ -147,25 +147,33 @@ natural home), and recognition calls a *free* hosted small VLM. No torch, no CUD
 
 ```
 app/
-  srr/
+  config.py        single Settings object — the ONLY place env vars are read
+  server.py        thin FastAPI routes (upload / sample / page.png / ws_parse / ws_ask)
+  srr/             parsing
     core.py        data model + Protocols + prompt routing + reading order + assembly
     detector.py    HeuristicDetector (XY-cut, default) | DocLayoutYOLODetector (opt)
     recognizer.py  CloudVLM / StubVLM / EasyOCRVLM  +  VLMRecognizer / GroundTruthRecognizer
     cloud.py       Groq / OpenRouter / custom OpenAI-compatible providers
     streaming.py   StreamingSRRPipeline — emits events as it runs (the live source)
     factory.py     build_pipeline() — assembles the right tier from SRR_* env vars
-  engine/
-    graph.py       LangGraph: BM25 retrieve → grade → rewrite → generate (streamed)
-  server.py        FastAPI: upload / sample / page.png / ws_parse / ws_ask
+    parsers/       textlayer (born-digital) · docling (layout, opt) · cloudvlm (scanned OCR)
+  retrieval/       base (Retriever protocol + Evidence) · index (DocIndex: parent-child + BM25)
+                   hybrid (dense + RRF + Cohere rerank) · qdrant · cohere_client
+  agent/
+    graph.py       LangGraph: contextualize → retrieve → grade → rewrite → generate (streamed)
+  storage/
+    docstore.py    DocStore ABC + SqliteDocStore (local) / GcsDocStore (cloud)
+  guards.py obs.py guardrails + observability (JSONL traces)
   web/             index.html · styles.css · app.js  (canvas side window + chat)
+tests/             fast offline pytest gate (test_smoke.py) + units
+evals/             RAGAS-style eval harness + retrieval A/B
 samples/
   make_sample.py   generates report_page.png + a ground-truth sidecar
-files/             the original stubbed reference (srr_pipeline / langgraph / llamaindex)
 ```
 
-The reusable primitives in `app/srr/core.py` are adapted from the reference
-`files/srr_pipeline.py`; the agent nodes in `app/engine/graph.py` from
-`files/langgraph_srr_agent.py`.
+The two seams the rest of the code depends on: **`retrieval.base.Retriever`** (the agent
+reasons against this protocol, never a concrete index) and **`storage.docstore.DocStore`**
+(persisted docs, SQLite ↔ GCS by config). Config is read only through `app.config.settings`.
 
 ---
 
