@@ -1,5 +1,5 @@
 """
-pdf_docling.py — document parsing via Docling (IBM's open-source layout parser).
+docling.py — document parsing via Docling (IBM's open-source layout parser).
 
 Why: PyMuPDF's text layer + hand-rolled heuristics (font-size headings, find_tables,
 XY-cut order) is brittle on design-heavy reports and can't read scanned / outlined-font
@@ -18,7 +18,7 @@ import logging
 import os
 from io import BytesIO
 
-from .core import BBox, Block, BlockType, ColumnAwareReadingOrder
+from ..core import BBox, Block, BlockType, ColumnAwareReadingOrder
 
 logger = logging.getLogger("srr.docling")
 

@@ -17,7 +17,7 @@ import time
 from abc import ABC, abstractmethod
 from pathlib import Path
 
-from .config import settings
+from ..config import settings
 
 
 class DocStore(ABC):

@@ -35,13 +35,15 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from PIL import Image
 
-from . import guards, obs, store
+from . import guards, obs
 from .config import settings
 from .agent.graph import AgentEngine
 from .retrieval import DocIndex, make_retriever
-from .srr import cloud, pdf_textlayer
+from .srr import cloud
 from .srr.core import ColumnAwareReadingOrder, block_from_dict, block_to_dict
 from .srr.factory import build_pipeline
+from .srr.parsers import textlayer
+from .storage import get_store
 
 WEB_DIR = Path(__file__).parent / "web"
 SAMPLES_DIR = Path(__file__).resolve().parents[1] / "samples"
@@ -62,7 +64,7 @@ async def _no_cache_static(request, call_next):
     return resp
 
 DOCS: dict[str, dict] = {}   # doc_id -> live per-doc state (reconstructable from STORE)
-STORE = store.get_store()    # durable persistence (survives restart; SQLite -> GCS/Firestore on GCP)
+STORE = get_store()    # durable persistence (survives restart; SQLite -> GCS/Firestore on GCP)
 
 
 # --------------------------------------------------------------------------- #
@@ -133,43 +135,43 @@ def _parse_pdf_bg(doc_id: str, data: bytes) -> None:
     n = doc["page_count"]
     try:
         if parser == "auto":                              # best available per document
-            from .srr import pdf_cloudvlm
-            scanned = not pdf_textlayer.has_text_layer(doc["fitz"])
+            from .srr.parsers import cloudvlm
+            scanned = not textlayer.has_text_layer(doc["fitz"])
             if scanned:
-                parser = "cloudvlm" if pdf_cloudvlm.available() else "docling"
+                parser = "cloudvlm" if cloudvlm.available() else "docling"
             else:                                         # born-digital: Docling if installed, else fast text layer
                 parser = "docling" if _docling_available() else "textlayer"
         if parser == "textlayer":
             fitz_doc = doc["fitz"]
-            if not pdf_textlayer.has_text_layer(fitz_doc):
+            if not textlayer.has_text_layer(fitz_doc):
                 return _fail(doc_id, doc, "This PDF has no text layer (looks scanned).")
-            pb = [pdf_textlayer.extract_page(fitz_doc[i], i + 1, relation) for i in range(n)]
-            pdf_textlayer.mark_repeated_furniture(pb, doc["sizes"])
+            pb = [textlayer.extract_page(fitz_doc[i], i + 1, relation) for i in range(n)]
+            textlayer.mark_repeated_furniture(pb, doc["sizes"])
             doc["pages_blocks"] = pb
             doc["parsed_pages"] = n
             _rebuild_index(doc)
             _save_pages(doc_id, doc, 0, n)
         elif parser == "cloudvlm":
-            from .srr import pdf_cloudvlm
-            if not pdf_cloudvlm.available():
+            from .srr.parsers import cloudvlm
+            if not cloudvlm.available():
                 return _fail(doc_id, doc, "Cloud VLM OCR needs GROQ_API_KEY or OPENROUTER_API_KEY in .env.")
             chunk = settings.vlm_chunk
             for a in range(0, n, chunk):
                 b = min(a + chunk, n)
-                for gp0, blocks in pdf_cloudvlm.parse_pages(data, a, b).items():
+                for gp0, blocks in cloudvlm.parse_pages(data, a, b).items():
                     if 0 <= gp0 < n:
                         doc["pages_blocks"][gp0] = blocks
                 doc["parsed_pages"] = b
                 _rebuild_index(doc)
                 _save_pages(doc_id, doc, a, b)
         else:
-            from .srr import pdf_docling
+            from .srr.parsers import docling
             env_ocr = settings.docling_ocr
-            do_ocr = (not pdf_textlayer.has_text_layer(doc["fitz"])) if env_ocr is None else (env_ocr != "0")
+            do_ocr = (not textlayer.has_text_layer(doc["fitz"])) if env_ocr is None else (env_ocr != "0")
             chunk = settings.docling_chunk
             for a in range(0, n, chunk):
                 b = min(a + chunk, n)
-                for gp0, blocks in pdf_docling.parse_pages(data, a, b, do_ocr=do_ocr).items():
+                for gp0, blocks in docling.parse_pages(data, a, b, do_ocr=do_ocr).items():
                     if 0 <= gp0 < n:
                         doc["pages_blocks"][gp0] = blocks
                 doc["parsed_pages"] = b
@@ -340,7 +342,7 @@ def pdf_page_data(doc_id: str, n: int):
         return {"page": n, "page_w": int(w), "page_h": int(h), "status": "pending"}
     return {"page": n, "page_w": int(w), "page_h": int(h), "status": "ready",
             "blocks": [block_to_dict(b) for b in blocks],
-            "markdown": pdf_textlayer.page_markdown(blocks)}
+            "markdown": textlayer.page_markdown(blocks)}
 
 
 # --------------------------------------------------------------------------- #

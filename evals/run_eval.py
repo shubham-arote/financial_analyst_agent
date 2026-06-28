@@ -20,7 +20,8 @@ import fitz
 
 from app.agent.graph import AgentEngine
 from app.retrieval import DocIndex, build_retriever
-from app.srr import cloud, pdf_textlayer
+from app.srr import cloud
+from app.srr.parsers import textlayer
 from app.srr.core import ColumnAwareReadingOrder
 
 SAMPLE = Path(__file__).resolve().parents[1] / "samples" / "sample_report.pdf"
@@ -64,9 +65,9 @@ ABSTAIN_HINTS = ("couldn't find", "could not find", "not in this document", "no 
 def build_index() -> DocIndex:
     doc = fitz.open(str(SAMPLE))
     rel = ColumnAwareReadingOrder()
-    pages = [pdf_textlayer.extract_page(doc[n], n + 1, rel) for n in range(len(doc))]
+    pages = [textlayer.extract_page(doc[n], n + 1, rel) for n in range(len(doc))]
     sizes = [(doc[n].rect.width, doc[n].rect.height) for n in range(len(doc))]
-    pdf_textlayer.mark_repeated_furniture(pages, sizes)
+    textlayer.mark_repeated_furniture(pages, sizes)
     return DocIndex.from_blocks([b for pb in pages for b in pb])
 
 

@@ -1,5 +1,5 @@
 """
-pdf_cloudvlm.py — OCR scanned PDFs with a cloud vision model (Groq / OpenRouter).
+cloudvlm.py — OCR scanned PDFs with a cloud vision model (Groq / OpenRouter).
 
 Why: local Docling OCR (RapidOCR on CPU) is ~8 min/page on a no-GPU machine and merges
 words. A hosted vision model reads a rendered page in ~5s with better quality. For
@@ -19,8 +19,8 @@ import re
 import fitz
 from PIL import Image
 
-from . import cloud
-from .core import BBox, Block, BlockType
+from .. import cloud
+from ..core import BBox, Block, BlockType
 
 OCR_PROMPT = (
     "Transcribe this document page to clean Markdown. Use '#'/'##' for headings, keep "

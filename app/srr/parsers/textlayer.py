@@ -1,5 +1,5 @@
 """
-pdf_textlayer.py — born-digital PDF ingestion via PyMuPDF's text layer.
+textlayer.py — born-digital PDF ingestion via PyMuPDF's text layer.
 
 For PDFs that already carry a text layer (exported reports, 10-Ks, annual accounts),
 this reads embedded text + bounding boxes + font sizes directly — no OCR, no VLM, and the
@@ -20,8 +20,8 @@ from __future__ import annotations
 import re
 from collections import Counter
 
-from ..config import settings
-from .core import BBox, Block, BlockType, ColumnAwareReadingOrder, assemble_markdown
+from ...config import settings
+from ..core import BBox, Block, BlockType, ColumnAwareReadingOrder, assemble_markdown
 
 _NUM = re.compile(r"^[-(]?\d[\d,.\s]*\)?%?$")
 
