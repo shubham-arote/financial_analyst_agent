@@ -125,6 +125,16 @@ h2 { font-size: 14px; margin: 0; }
 .node-grade.weak { color: var(--warn); }
 .node-grade.relevant { color: var(--good); }
 
+/* analyst badges — make the calculator + verifier visible under each answer */
+.analyst-badges { display: flex; flex-wrap: wrap; gap: 6px; margin: 9px 0 2px; }
+.abadge { font-size: 11px; padding: 4px 10px; border-radius: 12px; border: 1px solid var(--line);
+  display: inline-flex; align-items: center; gap: 6px; font-weight: 600; }
+.abadge code { font-family: ui-monospace, "Cascadia Code", monospace; font-size: 11px; font-weight: 600;
+  background: #0d1420; padding: 1px 6px; border-radius: 5px; color: var(--fg); }
+.abadge.calc { background: #14253a; border-color: #1f3a52; color: var(--accent); }
+.abadge.ok { background: #14352a; border-color: #1f6b4f; color: var(--good); }
+.abadge.warn { background: #3a2c14; border-color: #6b531f; color: var(--warn); }
+
 /* inline citation chips inside answers */
 .cite { display: inline-block; background: #14253a; border: 1px solid #1f3a52; color: var(--accent);
   font-size: 11px; font-weight: 600; padding: 0 7px; border-radius: 10px; cursor: pointer; margin: 0 1px; vertical-align: baseline; }

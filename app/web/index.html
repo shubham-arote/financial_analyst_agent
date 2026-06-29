@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Document Q&A — ask your PDFs</title>
-  <link rel="stylesheet" href="/static/styles.css?v=4" />
+  <title>Financial Analyst Agent</title>
+  <link rel="stylesheet" href="/static/styles.css?v=5" />
 </head>
 <body>
   <header>
     <div class="brand">
-      <h1>Document&nbsp;Q&amp;A</h1>
-      <p class="sub">Ask questions about any PDF — every answer links back to the exact page &amp; spot</p>
+      <h1>Financial&nbsp;Analyst&nbsp;Agent</h1>
+      <p class="sub">Ask financial documents — answers cite the source, and numbers are <b>computed exactly</b> &amp; <b>verified</b></p>
     </div>
     <div class="controls">
       <span id="badge" class="badge" title="how text is being read"></span>
@@ -47,10 +47,11 @@
         <canvas id="overlay"></canvas>
         <div id="placeholder" class="placeholder">
           <div class="hero">
-            <div class="hero-badge">PDF → answers</div>
-            <h2>Turn a report into answers</h2>
-            <p>Upload a PDF or try the sample. We read every page, then you can ask questions —
-               each answer cites the exact page and highlights where it came from.</p>
+            <div class="hero-badge">analyze · compute · verify</div>
+            <h2>Turn a financial report into answers</h2>
+            <p>Upload a report or try the sample. Ask anything — each answer <b>cites the exact
+               page</b>, and for number questions the agent <b>computes the figure exactly</b> and
+               <b>verifies</b> it against the source.</p>
             <div class="hero-cta">
               <button id="heroSample" class="btn primary">Try the sample report</button>
               <button id="heroUpload" class="btn ghost">Upload your own PDF</button>
@@ -91,6 +92,6 @@
     </section>
   </main>
 
-  <script src="/static/app.js?v=4"></script>
+  <script src="/static/app.js?v=5"></script>
 </body>
 </html>

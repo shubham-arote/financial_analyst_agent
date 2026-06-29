@@ -348,9 +348,9 @@ function enableAsk(label) {
 }
 
 const SUGGESTIONS = [
-  "Summarize this document",
-  "What are the key financial figures?",
-  "What was revenue and how did it change?",
+  "What was the year-over-year change in operating profit?",
+  "What is the operating margin?",
+  "Summarize the key financial figures",
   "What does it say about the outlook?",
 ];
 function renderSuggestions() {
@@ -391,24 +391,61 @@ function submitQuestion(q) {
 function handleAsk(ev) {
   if (ev.type === "agent_start") {
     traceLine(`▶ ${ev.mode}`);
+  } else if (ev.type === "agent_node" && ev.node === "supervise") {
+    traceLine(`🧭 route → ${ev.task}`);
+    if (curBot._thinking) curBot._thinking.textContent =
+      ev.task === "qa" ? "Searching the document…" : "Analyzing the figures…";
   } else if (ev.type === "agent_node" && ev.node === "retrieve") {
     traceLine(`🔍 retrieve · attempt ${ev.attempt} · ${ev.k} hits`);
   } else if (ev.type === "agent_node" && ev.node === "grade") {
     traceLine(`⚖ grade → ${ev.verdict}`, "node-grade " + ev.verdict);
   } else if (ev.type === "agent_node" && ev.node === "rewrite") {
     traceLine(`✏ rewrite → "${escapeHtml(ev.query)}"`);
+  } else if (ev.type === "agent_node" && ev.node === "calculate") {
+    traceLine(`🧮 calculate → ${escapeHtml(ev.expr)} = ${ev.result}`);
+    curBot._calc = ev;                                       // surfaced as a badge under the answer
+  } else if (ev.type === "agent_node" && ev.node === "verify") {
+    const u = ev.unverified || [];
+    traceLine(u.length ? `✅ verify → flagged ${u.join(", ")}` : "✅ verify → all figures cited");
+    addVerifyBadge(curBot, u);                              // verify runs AFTER the answer is shown
   } else if (ev.type === "agent_answer") {
     if (curBot._thinking) { curBot._thinking.remove(); curBot._thinking = null; }
     const ans = document.createElement("div"); ans.className = "answer";
     ans.innerHTML = renderAnswer(ev.answer);
     curBot.insertBefore(ans, curBot.firstChild);            // answer above the steps toggle
     wireCitations(ans, ev.sources || []);
+    renderAnalystBadges(ans, curBot);                       // 🧮 computed · ✓ verified
     if (ev.sources && ev.sources.length) { renderEvidence(curBot, ev.sources); renderSources(curBot, ev.sources); }
     scrollMsgs();
   } else if (ev.type === "error") {
     traceLine("⚠ " + escapeHtml(ev.error));
   }
 }
+
+// Make the analyst's work visible: a "computed" chip (formula + exact result) and a
+// "verified" chip, shown right under the answer.
+function renderAnalystBadges(ansEl, bot) {
+  const wrap = document.createElement("div"); wrap.className = "analyst-badges";
+  ansEl.insertAdjacentElement("afterend", wrap);
+  bot._badges = wrap;
+  if (bot._calc) {
+    const b = document.createElement("span"); b.className = "abadge calc";
+    b.innerHTML = `🧮 computed <code>${escapeHtml(String(bot._calc.expr))} = ${fmtNum(bot._calc.result)}</code>`;
+    wrap.appendChild(b);
+  }
+}
+// verify arrives after the answer; append its chip to the badge row (skip the "all clear"
+// chip for plain text answers with no figures to report).
+function addVerifyBadge(bot, unverified) {
+  const wrap = bot._badges;
+  if (!wrap || (!unverified.length && !bot._calc)) return;
+  const b = document.createElement("span"); b.className = "abadge " + (unverified.length ? "warn" : "ok");
+  b.textContent = unverified.length
+    ? `⚠ ${unverified.length} unverified figure${unverified.length > 1 ? "s" : ""}`
+    : "✓ figures verified";
+  wrap.appendChild(b);
+}
+function fmtNum(n) { return (typeof n === "number" && !Number.isInteger(n)) ? n.toFixed(2) : n; }
 
 function renderSources(bot, sources) {
   sourceRows.clear();
