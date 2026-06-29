@@ -1,17 +1,32 @@
-# Grounded Document-QA Agent
+# Financial Analyst Agent
 
-Ask questions about any PDF — **born-digital or scanned** — and get answers that **cite the exact
-page and spot** they came from. A document-intelligence pipeline (layout-model parsing + cloud OCR)
-feeding a **LangGraph** agentic-RAG loop, with the production layer that turns a demo into something
-measurable and deployable: an **evaluation harness**, an **abstain path**, **guardrails**, and
-**observability**.
+Upload financial documents (annual reports, 10-Ks — **born-digital or scanned**), ask questions, and
+get answers that **cite the exact page and block** they came from — and for number questions the agent
+**computes the figure exactly and verifies it**, instead of trusting an LLM's mental math.
 
-**Pipeline:** PDF → parse (Docling layout model · cloud-VLM OCR for scans · text-layer fast path,
-**auto-routed** by document type) → parent-child chunks + reranking → agent loop *retrieve → grade →
-rewrite↺ → generate* → **cited answer** with click-to-source highlighting. Parsing runs in the
-**background with a live progress bar**, so you can query pages as they finish.
+Built on **LangGraph** as a **multi-agent** system: a supervisor routes each question, a hybrid
+retrieval layer finds the evidence, a deterministic **calculator** does the arithmetic, a **verifier**
+checks every number traces back to a citation, and it can **compare figures across multiple documents**
+(this year vs last). Around the core sits the production layer — an **evaluation harness**, an
+**abstain path**, **guardrails**, and **observability**.
 
-> Demoed on financial reports (10-K / annual-report style): multi-column tables, charts, scanned pages.
+**Pipeline:** PDF → parse (text-layer fast path · Docling layout model · cloud-VLM OCR for scans,
+**auto-routed**) → parent-child chunks + hybrid retrieval (BM25 + dense + Cohere rerank) → multi-agent
+loop *supervise → retrieve → grade → calculate → generate → verify* → **cited, computed, verified
+answer** with click-to-source highlighting.
+
+## The analyst layer
+
+| Capability | What it does |
+|---|---|
+| **Supervisor** | Routes each question to a QA or analysis lane ([`app/agent/graph.py`](app/agent/graph.py)) |
+| **Calculator** | Computes figures **exactly** via an AST-whitelist evaluator — never `eval` ([`app/agent/calculator.py`](app/agent/calculator.py)) |
+| **Verifier** | Flags any number in the answer not traceable to a citation or the computation ([`app/agent/verify.py`](app/agent/verify.py)) |
+| **Cross-document** | Compares figures across multiple uploaded docs ([`app/retrieval/multidoc.py`](app/retrieval/multidoc.py)) |
+
+*Example:* "What was the year-over-year change in operating profit?" → retrieves **1,052** (FY26) and
+**985** (FY25) → computes `((1052-985)/985)*100` deterministically → **"6.80%"**, with both inputs
+verified against their citations.
 
 ---
 
@@ -63,11 +78,12 @@ Reproduce: `python -m evals.run_eval`.
           └────────────────────────────────────────────────────────────┘
                                                               │ chunk + index (BM25)
                                                               ▼
-                 ┌──────────── LangGraph loop (reasoning) ───────────┐
-   question ───► │  retrieve ─► grade ─┬─(relevant)─► generate ─► ✔  │
-                 │      ▲              └─(weak)─► rewrite ─┘          │
-                 │      └───────────────────────────────────────────┘ (attempts budget)
-                 └────────────────────────────────────────────────────┘
+        ┌──────────── LangGraph multi-agent loop (reasoning) ─────────────┐
+ question ─►│ supervise ─► retrieve ─► grade ─┬─(qa)────► generate ─► verify ─► ✔
+        │   (route qa|calc|compare)           └─(calc)─► calculate ─┘            │
+        │            ▲                              rewrite ↺ (weak, attempts budget)
+        └────────────┴─────────────────────────────────────────────────────────┘
+   calculate = exact AST-evaluated math · verify = every number traced to a citation
 ```
 
 Each stage hides behind a small `Protocol`, so any component is **swappable without touching
@@ -130,8 +146,9 @@ holding hundreds of images in RAM).
 - **Click a source → it opens that page and highlights the exact block** it came from.
 
 Try it without your own file: `samples/make_sample_pdf.py` builds a 6-page mock annual report
-(`samples/sample_report.pdf`); the server also serves it at `GET /sample.pdf`. Scanned PDFs (no
-text layer) are detected and rejected with a clear message — OCR-for-scanned isn't wired in yet.
+(`samples/sample_report.pdf`); the server also serves it at `GET /sample.pdf`. **Scanned PDFs**
+(no text layer) are auto-routed to **cloud-VLM OCR** (a hosted vision model, one page at a time) when
+a cloud key is set — so image-only filings work too.
 
 ---
 
