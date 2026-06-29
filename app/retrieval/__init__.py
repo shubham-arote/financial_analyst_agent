@@ -10,8 +10,9 @@ from .base import Evidence, Retriever
 from .index import DocIndex
 from .hybrid import (HybridRetriever, build_retriever, make_retriever,
                      classify, lookup_terms)
+from .multidoc import MultiDocRetriever
 from . import cohere_client
 
 __all__ = ["Evidence", "Retriever", "DocIndex", "HybridRetriever",
            "build_retriever", "make_retriever", "classify", "lookup_terms",
-           "cohere_client"]
+           "MultiDocRetriever", "cohere_client"]

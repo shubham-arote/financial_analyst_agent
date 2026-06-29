@@ -30,6 +30,7 @@ class Evidence(TypedDict, total=False):
     block_id: str | None      # the SRR/Docling block this hit came from
     section_id: int | None    # parent-section index (small-to-big retrieval)
     type: str                 # block type: text | title | table | figure | ...
+    doc: str                  # source-document label (set by MultiDocRetriever for compare)
 
     # --- text ---
     text: str                 # searchable child text (heading + content)        (required)

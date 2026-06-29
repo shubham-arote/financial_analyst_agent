@@ -7,10 +7,18 @@ monkeypatched, so the whole file runs with no network and no keys.
 import math
 
 from app.srr.core import Block, BBox, BlockType
-from app.retrieval import DocIndex
+from app.retrieval import DocIndex, MultiDocRetriever
 from app.agent.graph import AgentEngine
 from app.agent.verify import verify_numbers
 from app.srr import cloud
+
+
+def _blk(t, content, page, order, bid):
+    b = Block(type=t, bbox=BBox(0, order * 30, 100, order * 30 + 20), page=page)
+    b.content = content
+    b.order = order
+    b.id = bid
+    return b
 
 
 def _make_index() -> DocIndex:
@@ -101,3 +109,20 @@ def test_streaming_emits_supervise_event():
     events = list(eng.run_streaming("where is the registered office?", thread_id="s1"))
     supervise = [e for e in events if e.get("node") == "supervise"]
     assert supervise and supervise[0]["task"] in ("qa", "calc", "compare")
+
+
+# ── cross-document (increment D) ──────────────────────────────────────────────
+def test_multidoc_tags_each_document():
+    a = DocIndex.from_blocks([_blk(BlockType.TEXT, "Operating profit was 1052 in FY26.", 1, 0, "a1")])
+    b = DocIndex.from_blocks([_blk(BlockType.TEXT, "Operating profit was 985 in FY25.", 1, 0, "b1")])
+    mdr = MultiDocRetriever({"FY26": a, "FY25": b})
+    labels = {h.get("doc") for h in mdr.retrieve("operating profit", k=4)}
+    assert {"FY26", "FY25"} <= labels
+
+
+def test_supervise_routes_compare_when_multidoc():
+    a = DocIndex.from_blocks([_blk(BlockType.TEXT, "Operating profit 1052.", 1, 0, "a1")])
+    eng = AgentEngine(a, multi_doc=True)
+    out = eng._supervise({"original_question": "compare operating profit across the two filings",
+                          "question": "x"})
+    assert out["task"] == "compare"

@@ -247,7 +247,14 @@ async def ws_ask(ws: WebSocket, doc_id: str):
             if not doc or not doc.get("index") or not doc["index"].chunks:
                 await ws.send_json({"type": "error", "error": "still parsing — ask again in a moment"})
                 continue
-            engine = chat.get_engine(doc, doc_id)               # retriever cached per finalized index
+            # cross-document compare: include any extra ready docs passed as {"doc_ids": [...]}
+            scope = {doc_id: doc}
+            for d in (msg.get("doc_ids") or []):
+                od = documents.get(d)
+                if d != doc_id and od and od.get("index") and od["index"].chunks:
+                    scope[d] = od
+            engine = (chat.get_compare_engine(scope) if len(scope) > 1
+                      else chat.get_engine(doc, doc_id))
 
             def gen():
                 yield from engine.run_streaming(question, thread_id=thread_id)

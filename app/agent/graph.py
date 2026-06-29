@@ -99,9 +99,10 @@ class RAGState(TypedDict, total=False):
 
 
 class AgentEngine:
-    def __init__(self, index: Retriever, k: int = 6, checkpointer=None):
+    def __init__(self, index: Retriever, k: int = 6, checkpointer=None, multi_doc: bool = False):
         self.index = index
         self.k = k
+        self.multi_doc = multi_doc           # retriever spans >1 document (cross-doc compare)
         self.use_cloud = cloud.has_cloud()
         self.checkpointer = checkpointer if checkpointer is not None else _CHECKPOINTER
         self.graph = self._build()
@@ -111,14 +112,15 @@ class AgentEngine:
         """Dedup parent sections (small-to-big) into a page-tagged context string."""
         seen, parts = set(), []
         for c in hits:
-            sid = c.get("section_id")
-            key = ("s", sid) if sid is not None else ("c", c.get("block_id"), c.get("page"))
+            sid, doc = c.get("section_id"), c.get("doc")   # doc keeps cross-doc sections distinct
+            key = ("s", doc, sid) if sid is not None else ("c", doc, c.get("block_id"), c.get("page"))
             if key in seen:
                 continue
             seen.add(key)
             head = c.get("section_heading") or c.get("heading") or ""
             body = c.get("parent_text") or c.get("content") or c["text"]
-            parts.append(f"[page {c['page']}] {head}\n{body}")
+            tag = f"{c['doc']} · page {c['page']}" if c.get("doc") else f"page {c['page']}"
+            parts.append(f"[{tag}] {head}\n{body}")
         return "\n\n".join(parts)[:4000]
 
     # ---- nodes ---- #
@@ -146,7 +148,9 @@ class AgentEngine:
         (growth/margin/ratio/comparison), else `qa`. (`compare` = cross-document, set when a
         multi-doc retriever is active — Milestone D.)"""
         q = state.get("original_question") or state["question"]
-        task = "calc" if (is_math_query(q) or classify(q) == "comparison") else "qa"
+        needs_math = is_math_query(q) or classify(q) == "comparison"
+        task = ("compare" if self.multi_doc and needs_math
+                else "calc" if needs_math else "qa")
         return {"task": task}
 
     def _retrieve(self, state: RAGState) -> RAGState:
@@ -178,6 +182,11 @@ class AgentEngine:
     def _grade(self, state: RAGState) -> RAGState:
         retrieved = state.get("retrieved", [])
         ctx = self._context(retrieved)
+        # calc/compare: the answer is DERIVED (never stated verbatim), so don't ask an LLM whether
+        # the answer is present — accept the context as long as it holds figures, and let the
+        # calculator + verifier handle correctness.
+        if state.get("task") in ("calc", "compare"):
+            return {"grade": "relevant" if any(c.isdigit() for c in ctx) else "weak"}
         if self.use_cloud and ctx:
             verdict = cloud.chat_text(
                 f"Question: {state['original_question']}\n\nContext:\n{ctx}\n\n"
